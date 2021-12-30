@@ -85,34 +85,18 @@ bidsInTextOption2.enter(ctx => {
     ctx.replyWithHTML("To check for bids, please send me: term, course code and bidding window.\n\nExample: <b>2021-22 Term 2, IS215, R1BW1</b>\n\nI will reply with a list of instructors for you to choose from!")
 })
 
-bidsInTextOption2.on("text", async (ctx) => {
-    if (ctx.update.message.text.indexOf(', ') != -1) {
-        let [term, courseCode, biddingWindow] = formatUserInput(ctx.update.message.text)
-        ctx.scene.session.currInput = ctx.update.message.text;
-        try {
-            const results = await axios.get("http://localhost:5000/api/instructors", {
-                params: {
-                    term: term,
-                    courseCode: courseCode,
-                    biddingWindow: biddingWindow
-                }
-            });
-            let msgReply = "To proceed, please select one of the following option numbers: \n\n";
-            if (results.data.length !== 0) {
-                ctx.scene.session.instructorArr = [];
-                for (let i = 0; i < results.data.length; i++) {
-                    msgReply += `/${i + 1} ${results.data[i]}\n`
-                    ctx.scene.session.instructorArr.push(results.data[i])
-                }
-            } else {
-                msgReply += "No results found, please try again!";
-            }
-            ctx.replyWithHTML(msgReply);
-        } catch (error) {
-            ctx.reply(`An error has occured. Please try again or contact our admin. Error message: ${error}`);
-        }
+bidsInTextOption2.action("back", enter("bidsInText"));
+bidsInTextOption2.action("again", enter("bidsInTextOption2"));
+bidsInTextOption2.command("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.")
+    ctx.scene.leave()
+});
+
+bidsInTextOption2.hears(/^\/[0-9]+/, async ctx => {
+    let instructorIdx = parseInt(ctx.update.message.text.substring(1)) - 1;
+    if (ctx.scene.session.instructorArr == null || typeof ctx.scene.session.instructorArr[instructorIdx] === 'undefined') {
+        ctx.replyWithHTML("Did you send a wrong input? Please try again!")
     } else {
-        let instructorIdx = parseInt(ctx.update.message.text.substring(1)) - 1;
         let userInput = ctx.scene.session.currInput + ", " + ctx.scene.session.instructorArr[instructorIdx];
         let [term, courseCode, biddingWindow, instructor] = formatUserInput(userInput)
         try {
@@ -146,11 +130,31 @@ bidsInTextOption2.on("text", async (ctx) => {
     }
 });
 
-bidsInTextOption2.action("back", enter("bidsInText"));
-bidsInTextOption2.action("again", enter("bidsInTextOption2"));
-bidsInTextOption2.command("leave", ctx => {
-    ctx.reply("Bye bye! Thanks for using our bot.")
-    ctx.scene.leave()
+bidsInTextOption2.on("text", async (ctx) => {
+    let [term, courseCode, biddingWindow] = formatUserInput(ctx.update.message.text)
+    ctx.scene.session.currInput = ctx.update.message.text;
+    try {
+        const results = await axios.get("http://localhost:5000/api/instructors", {
+            params: {
+                term: term,
+                courseCode: courseCode,
+                biddingWindow: biddingWindow
+            }
+        });
+        let msgReply = "To proceed, please select one of the following option numbers: \n\n";
+        if (results.data.length !== 0) {
+            ctx.scene.session.instructorArr = [];
+            for (let i = 0; i < results.data.length; i++) {
+                msgReply += `/${i + 1} ${results.data[i]}\n`
+                ctx.scene.session.instructorArr.push(results.data[i])
+            }
+        } else {
+            msgReply += "No results found, please try again!";
+        }
+        ctx.replyWithHTML(msgReply);
+    } catch (error) {
+        ctx.reply(`An error has occured. Please try again or contact our admin. Error message: ${error}`);
+    }
 });
 
 // User chose Text Bid Results
@@ -186,7 +190,7 @@ bidsInGraph.on("text", async (ctx) => {
             minBids.push(result.minBid);
             medianBids.push(results.medianBid);
         }
-        
+
         const line_chart = ChartJSImage().chart({
             "type": "line",
             "data": {
@@ -205,7 +209,7 @@ bidsInGraph.on("text", async (ctx) => {
                         "data": minBids
                     }
                 ]
-            },    
+            },
             "options": {
                 "title": {
                     "display": true,
@@ -224,17 +228,17 @@ bidsInGraph.on("text", async (ctx) => {
                 }
             }
         })
-        .backgroundColor('white')
-        .width(500)
-        .height(300);
+            .backgroundColor('white')
+            .width(500)
+            .height(300);
         line_chart.toURL();
         await line_chart.toFile("bidChart.png");
         await line_chart.toDataURI();
         await line_chart.toBuffer();
 
         ctx.replyWithPhoto(
-            {source: path.join(__dirname, "bidChart.png")},
-            {caption: "This is your graph."}
+            { source: path.join(__dirname, "bidChart.png") },
+            { caption: "This is your graph." }
         );
 
         fs.unlink(path.join(__dirname, "bidChart.png"), err => {
