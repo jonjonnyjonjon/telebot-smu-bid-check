@@ -16,6 +16,7 @@
     "nodemon": "^2.0.15",
     "plotly": "^1.0.6",
     "plotly.js-dist": "^2.8.3",
+    "quickchart-js": "^2.0.3",
     "telegraf": "^4.5.2"
   }
 }
