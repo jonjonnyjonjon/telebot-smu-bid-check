@@ -16,84 +16,24 @@ function formatUserInput(userInput) {
     return formattedUserInput
 }
 
-// User chose Text Bid Results
+// User chose Bids In Text
 const bidsInText = new Scenes.BaseScene("bidsInText");
 
 bidsInText.enter(ctx => {
-    ctx.replyWithHTML("How do you want to look at past bids?\nOption 1: Based on the specific term, course code, bidding window and instructor\nOption 2: Based on the specific term, course and bidding window", Markup.inlineKeyboard([
-        Markup.button.callback("Option 1", "option1"),
-        Markup.button.callback("Option 2", "option2")
-    ]))
-});
+    ctx.replyWithHTML("To check for bids, please send me: term, course code and bidding window.\n\nExample: <b>2021-22 Term 2, IS215, R1BW1</b>\n\nI will reply with a list of instructors for you to choose from!")
+})
 
-bidsInText.action("option1", enter("bidsInTextOption1"))
-bidsInText.action("option2", enter("bidsInTextOption2"))
+bidsInText.action("again", enter("bidsInText"));
+bidsInText.action("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
 bidsInText.command("leave", ctx => {
     ctx.reply("Bye bye! Thanks for using our bot.");
     ctx.scene.leave();
 });
 
-// User chose Option 1 from bidsInText
-const bidsInTextOption1 = new Scenes.BaseScene("bidsInTextOption1");
-
-bidsInTextOption1.enter(ctx => {
-    ctx.replyWithHTML("To check for bids, please send me: term, course code, bidding window, instructor.\nExample: 2021-22 Term 2, IS215, R1BW1, Christopher Michael Poskitt")
-})
-
-bidsInTextOption1.action("back", enter("bidsInText"));
-bidsInTextOption1.action("again", enter("bidsInTextOption1"));
-bidsInTextOption1.command("leave", ctx => {
-    ctx.reply("Bye bye! Thanks for using our bot.");
-    ctx.scene.leave();
-});
-
-bidsInTextOption1.on("text", async (ctx) => {
-    let [term, courseCode, biddingWindow, instructor] = formatUserInput(ctx.update.message.text)
-    try {
-        const results = await axios.get("http://localhost:5000/api/bidding", {
-            params: {
-                term: term,
-                courseCode: courseCode.toUpperCase(),
-                biddingWindow: biddingWindow,
-                instructor: instructor.toUpperCase()
-            }
-        });
-        let msgReply = "Results for your query: \n\n";
-        if (results.data.length !== 0) {
-            for (let result of results.data) {
-                msgReply += `<u>Section ${result.section}</u>\nClass Size: ${result.enrolledStudents} out of ${result.vacancy}\nOpening vacancy: ${result.openingVacancy}\nMedian Bid: ${result.medianBid}\nMin Bid: ${result.minBid}`;
-
-                msgReply += "\n\n";
-            }
-        } else {
-            msgReply += "No results found.";
-        }
-        ctx.replyWithHTML(msgReply,
-            Markup.inlineKeyboard([
-                Markup.button.callback("Back", "back"),
-                Markup.button.callback("Search again", "again")
-            ])
-        );
-    } catch (error) {
-        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`);
-    }
-});
-
-// User chose Option 2 from bidsInText
-const bidsInTextOption2 = new Scenes.BaseScene("bidsInTextOption2");
-
-bidsInTextOption2.enter(ctx => {
-    ctx.replyWithHTML("To check for bids, please send me: term, course code and bidding window.\n\nExample: <b>2021-22 Term 2, IS215, R1BW1</b>\n\nI will reply with a list of instructors for you to choose from!")
-})
-
-bidsInTextOption2.action("back", enter("bidsInText"));
-bidsInTextOption2.action("again", enter("bidsInTextOption2"));
-bidsInTextOption2.command("leave", ctx => {
-    ctx.reply("Bye bye! Thanks for using our bot.");
-    ctx.scene.leave();
-});
-
-bidsInTextOption2.hears(/^\/[0-9]+/, async ctx => {
+bidsInText.hears(/^\/[0-9]+/, async (ctx) => {
     let instructorIdx = parseInt(ctx.update.message.text.substring(1)) - 1;
     if (ctx.scene.session.instructorArr == null || typeof ctx.scene.session.instructorArr[instructorIdx] === 'undefined') {
         ctx.replyWithHTML("Did you send a wrong input? Please try again!")
@@ -112,7 +52,7 @@ bidsInTextOption2.hears(/^\/[0-9]+/, async ctx => {
             let msgReply = "Results for your query: \n\n";
             if (results.data.length !== 0) {
                 for (let result of results.data) {
-                    msgReply += `<u>Section ${result.section}</u>\nClass Size: ${result.enrolledStudents} out of ${result.vacancy}\nOpening vacancy: ${result.openingVacancy}\nMedian Bid: ${result.medianBid}\nMin Bid: ${result.minBid}`;
+                    msgReply += `<u>Section ${result.section}</u>\nClass Size: ${result.enrolledStudents} out of ${result.vacancy}\nOpening vacancy: ${result.openingVacancy}\nBefore Vacancy: ${result.beforeProcessVacancy}\nAfter Vacancy: ${result.afterProcessVacancy}\nMedian Bid: ${result.medianBid}\nMin Bid: ${result.minBid}`;
 
                     msgReply += "\n\n";
                 }
@@ -121,17 +61,21 @@ bidsInTextOption2.hears(/^\/[0-9]+/, async ctx => {
             }
             ctx.replyWithHTML(msgReply,
                 Markup.inlineKeyboard([
-                    Markup.button.callback("Back", "back"),
-                    Markup.button.callback("Search again", "again")
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
                 ])
             );
         } catch (error) {
-            ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`);
-        }
+            ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+                Markup.inlineKeyboard([
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
+            ]));
+    }
     }
 });
 
-bidsInTextOption2.on("text", async (ctx) => {
+bidsInText.on("text", async (ctx) => {
     let [term, courseCode, biddingWindow] = formatUserInput(ctx.update.message.text)
     ctx.scene.session.currInput = ctx.update.message.text;
     try {
@@ -142,7 +86,7 @@ bidsInTextOption2.on("text", async (ctx) => {
                 biddingWindow: biddingWindow
             }
         });
-        let msgReply = "To proceed, please select one of the following option numbers: \n\n";
+        let msgReply = "Now, choose an instructor: \n\n";
         if (results.data.length !== 0) {
             ctx.scene.session.instructorArr = [];
             for (let i = 0; i < results.data.length; i++) {
@@ -154,18 +98,22 @@ bidsInTextOption2.on("text", async (ctx) => {
         }
         ctx.replyWithHTML(msgReply);
     } catch (error) {
-        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`);
+        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+        Markup.inlineKeyboard([
+            [ Markup.button.callback("Search again", "again") ],
+            [ Markup.button.callback("Leave", "leave") ]
+        ]));
     }
 });
 
-// User chose Text Bid Results
+// User chose Bids In Graph
 const bidsInGraph = new Scenes.BaseScene("bidsInGraph");
 
 bidsInGraph.enter(ctx => {
     ctx.replyWithHTML("To generate a graph with bids, please either of the following to continue:\nOption 1: View past bids by their term, course code, instructor and section\nOption 2: View all past bids by term and course code",
     Markup.inlineKeyboard([
-        Markup.button.callback("Option 1", "option1"),
-        Markup.button.callback("Option 2", "option2")
+        [ Markup.button.callback("Option 1", "option1") ],
+        [ Markup.button.callback("Option 2", "option2") ]
     ]));
 });
 bidsInGraph.action("option1", enter("bidsInGraphOption1"));
@@ -180,8 +128,12 @@ const bidsInGraphOption1 = new Scenes.BaseScene("bidsInGraphOption1");
 bidsInGraphOption1.enter(ctx => {
     ctx.replyWithHTML("Please send me the term, course code, instructor and section to generate the graph.\nExample: 2021-22 Term 2, IS215, Christopher Michael Poskitt, G7");
 })
-bidsInGraphOption1.action("back", enter("bidsInGraph"));
+bidsInGraphOption1.action("again", enter("bidsInGraphOption1"));
 bidsInGraphOption1.action("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+})
+bidsInGraphOption1.command("leave", ctx => {
     ctx.reply("Bye bye! Thanks for using our bot.");
     ctx.scene.leave();
 })
@@ -200,7 +152,11 @@ bidsInGraphOption1.on("text", async (ctx) => {
         });
 
         if (results.data.length === 0) {
-            ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart.");
+            ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart."),
+            Markup.inlineKeyboard([
+                [ Markup.button.callback("Search again", "again")] ,
+                [ Markup.button.callback("Leave", "leave")] 
+            ]);
             return;
         }
 
@@ -213,9 +169,12 @@ bidsInGraphOption1.on("text", async (ctx) => {
             medianBids.push(results.medianBid);
         }
         biddingWindows = biddingWindows.reverse();
+        minBids = minBids.reverse();
+        medianBids = medianBids.reverse();
 
         const myChart = new QuickChart();
-        myChart.setConfig({
+        myChart
+        .setConfig({
             type: "bar",
             data: {
                 labels: biddingWindows,
@@ -239,10 +198,49 @@ bidsInGraphOption1.on("text", async (ctx) => {
             },
             options: {
                 title: {
-                    text: "Your results"
+                    display: true,
+                    text: userInput
+                },
+                scales: {
+                    xAxes: [
+                        {
+                            ticks: {
+                                fontSize: 10
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Bidding round",
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: "e$",
+                            }
+                        }
+                    ]
+                },
+                plugins: {
+                    datalabels: {
+                        display: true,
+                        align: 'bottom',
+                        backgroundColor: function(context) {
+                            return context.dataset.backgroundColor;
+                        },
+                        color: 'white',
+                        borderRadius: 3,
+                        font: {
+                            size: 18,
+                        }
+                    },
                 }
             }
-        });
+        })
+        .setHeight(600)
+        .setWidth(1000);
+
         await myChart.toFile(path.join(__dirname, "bidGraphOption1.png"));
 
         ctx.replyWithPhoto(
@@ -251,8 +249,8 @@ bidsInGraphOption1.on("text", async (ctx) => {
                 caption: "This is your graph.",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
-                    Markup.button.callback("Back", "back"),
-                    Markup.button.callback("Leave", "leave")
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
                 ])
             }
         );
@@ -264,15 +262,27 @@ bidsInGraphOption1.on("text", async (ctx) => {
             }
         });
     } catch (error) {
-        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`);
+        if (error instanceof TypeError) {
+            ctx.reply("Please check that your query follows the format in the example.");
+        } else {
+            ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+                Markup.inlineKeyboard([
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
+            ]));
+        }
     }
 })
 
 // User choose bidsInGraph - Option 2
 const bidsInGraphOption2 = new Scenes.BaseScene("bidsInGraphOption2");
 
-bidsInGraphOption2.action("back", enter("bidsInGraph"));
+bidsInGraphOption2.action("again", enter("bidsInGraphOption2"));
 bidsInGraphOption2.action("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
+bidsInGraphOption2.command("leave", ctx => {
     ctx.reply("Bye bye! Thanks for using our bot.");
     ctx.scene.leave();
 });
@@ -292,7 +302,11 @@ bidsInGraphOption2.on("text", async (ctx) => {
         });
 
         if (results.data.length === 0) {
-            ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart.");
+            ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart."),
+            Markup.inlineKeyboard([
+                [ Markup.button.callback("Search again", "again")] ,
+                [ Markup.button.callback("Leave", "leave")] 
+            ]);
             return;
         }
 
@@ -341,7 +355,8 @@ bidsInGraphOption2.on("text", async (ctx) => {
         }
 
         const myChart = new QuickChart();
-        myChart.setConfig({
+        myChart
+        .setConfig({
             type: "line",
             data: {
                 labels: biddingWindows,
@@ -349,10 +364,35 @@ bidsInGraphOption2.on("text", async (ctx) => {
             },
             options: {
                 title: {
-                    text: `Your results for ${metric} bid`
+                    display: true,
+                    text: userInput
+                },
+                scales: {
+                    xAxes: [
+                        {
+                            ticks: {
+                                fontSize: 10
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Bidding round",
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: "e$",
+                            }
+                        }
+                    ]
                 }
             }
-        });
+        })
+        .setHeight(600)
+        .setWidth(1000);
+
         await myChart.toFile(path.join(__dirname, "bidGraphOption2.png"));
 
         ctx.replyWithPhoto(
@@ -361,8 +401,8 @@ bidsInGraphOption2.on("text", async (ctx) => {
                 caption: "This is your graph.",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
-                    Markup.button.callback("Back", "back"),
-                    Markup.button.callback("Leave", "leave")
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
                 ])
             }
         );
@@ -374,21 +414,29 @@ bidsInGraphOption2.on("text", async (ctx) => {
             }
         });
     } catch (error) {
-        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`);
+        if (error instanceof TypeError) {
+            ctx.reply("Please check that your query follows the format in the example.");
+        } else {
+            ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+                Markup.inlineKeyboard([
+                    [ Markup.button.callback("Search again", "again") ],
+                    [ Markup.button.callback("Leave", "leave") ]
+            ]));
+        }
     }
 });
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 // Staging the scenes
-const stage = new Scenes.Stage([bidsInText, bidsInTextOption1, bidsInTextOption2, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2])
+const stage = new Scenes.Stage([bidsInText, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2])
 bot.use(session())
 bot.use(stage.middleware())
 
 bot.start(ctx => {
     ctx.replyWithHTML("Welcome to SMU Bid Checker bot. What do you want to do today?", Markup.inlineKeyboard([
-        Markup.button.callback("Bids in Text", "bidsInText"),
-        Markup.button.callback("Bids in Graph", "bidsInGraph")
+        [ Markup.button.callback("View bids in Text format", "bidsInText") ],
+        [ Markup.button.callback("View Bids in Graph format", "bidsInGraph") ]
     ]))
 });
 bot.command("leave", ctx => {
