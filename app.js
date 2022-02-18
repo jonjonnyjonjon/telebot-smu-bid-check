@@ -426,17 +426,84 @@ bidsInGraphOption2.on("text", async (ctx) => {
     }
 });
 
+// User chooses Search for Course Code
+const searchCourseCode = new Scenes.BaseScene("searchCourseCode");
+
+searchCourseCode.enter(ctx => {
+    ctx.replyWithHTML("To look for a course code, please send me the name of the course that you are looking for.\n\nFor example, '<b>intro to programming</b>'.")
+})
+
+searchCourseCode.action("again", enter("searchCourseCode"));
+searchCourseCode.action("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
+searchCourseCode.command("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
+
+searchCourseCode.on("text", async (ctx) => {
+    let userInput = ctx.update.message.text;
+    try {
+        const results = await axios.get("http://localhost:5000/api/courseCode", {
+            params: {
+                description: userInput
+            }
+        });
+        let msgReply = "Here are the course codes that correspond to the course name that you have provided!\n\n";
+        let extendedMsgReply = "";
+        if (results.data.length !== 0) {
+            for (let i = 0; i < results.data.length; i++) {
+                let result = results.data[i];
+                if ((msgReply.length + `<b>•</b> ${result.courseCode}: ${result.description}\n`.length) > 4096) {
+                    extendedMsgReply += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
+                } else {
+                    msgReply += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
+                }
+            }
+        } else {
+            msgReply = "No results found, please try again!";
+        }
+        if (extendedMsgReply.length > 0) {
+            ctx.replyWithHTML(msgReply);
+            setTimeout(() => {
+                ctx.replyWithHTML(extendedMsgReply,
+                    Markup.inlineKeyboard([
+                        [Markup.button.callback("Search again", "again")],
+                        [Markup.button.callback("Leave", "leave")]
+                    ])
+                );
+            }, 500);
+        } else {
+            ctx.replyWithHTML(msgReply,
+                Markup.inlineKeyboard([
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ])
+            );
+        }
+    } catch (error) {
+        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+            Markup.inlineKeyboard([
+                [Markup.button.callback("Search again", "again")],
+                [Markup.button.callback("Leave", "leave")]
+            ]));
+    }
+});
+
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 // Staging the scenes
-const stage = new Scenes.Stage([bidsInText, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2])
+const stage = new Scenes.Stage([bidsInText, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2, searchCourseCode])
 bot.use(session())
 bot.use(stage.middleware())
 
 bot.start(ctx => {
     ctx.replyWithHTML("Welcome to SMU BOSS Results bot!\n\nYou can look for the past bidding results here instead of having to log into BOSS!\n\nWhat do you want to search for?", Markup.inlineKeyboard([
         [Markup.button.callback("View Past Bid Results in Text Format", "bidsInText")],
-        [Markup.button.callback("View Past Bid Results in Graph Format", "bidsInGraph")]
+        [Markup.button.callback("View Past Bid Results in Graph Format", "bidsInGraph")],
+        [Markup.button.callback("Search for a Course Code", "searchCourseCode")]
     ]))
 });
 bot.command("leave", ctx => {
@@ -445,6 +512,7 @@ bot.command("leave", ctx => {
 })
 bot.action("bidsInText", ctx => ctx.scene.enter("bidsInText"));
 bot.action("bidsInGraph", ctx => ctx.scene.enter("bidsInGraph"));
+bot.action("searchCourseCode", ctx => ctx.scene.enter("searchCourseCode"));
 
 bot.launch();
 
