@@ -3,6 +3,7 @@ const { Telegraf, Scenes, Markup, session } = require("telegraf");
 
 const axios = require("axios");
 const QuickChart = require("quickchart-js");
+const { v4: uuid4 } = require("uuid")
 
 const fs = require("fs");
 const path = require("path");
@@ -241,10 +242,11 @@ bidsInGraphOption1.on("text", async (ctx) => {
         .setHeight(600)
         .setWidth(1000);
 
-        await myChart.toFile(path.join(__dirname, "bidGraphOption1.png"));
+        const photoUUID = uuid4();
+        await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
 
         ctx.replyWithPhoto(
-            { source: path.join(__dirname, "bidGraphOption1.png") },
+            { source: path.join(__dirname, `${photoUUID}.png`) },
             { 
                 caption: "This is your graph.",
                 parse_mode: "Markdown",
@@ -255,10 +257,10 @@ bidsInGraphOption1.on("text", async (ctx) => {
             }
         );
 
-        fs.unlink(path.join(__dirname, "bidGraphOption1.png"), err => {
+        fs.unlink(path.join(__dirname, `${photoUUID}.png`), err => {
             if (err) console.log(err)
             else {
-                console.log("Deleted file: " + path.join(__dirname, "bidGraphOption1.png"))
+                console.log("Deleted file: " + path.join(__dirname, `${photoUUID}.png`))
             }
         });
     } catch (error) {
@@ -393,10 +395,11 @@ bidsInGraphOption2.on("text", async (ctx) => {
         .setHeight(600)
         .setWidth(1000);
 
-        await myChart.toFile(path.join(__dirname, "bidGraphOption2.png"));
+        const photoUUID = uuid4();
+        await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
 
         ctx.replyWithPhoto(
-            { source: path.join(__dirname, "bidGraphOption2.png") },
+            { source: path.join(__dirname, `${photoUUID}.png`) },
             { 
                 caption: "This is your graph.",
                 parse_mode: "Markdown",
@@ -407,10 +410,10 @@ bidsInGraphOption2.on("text", async (ctx) => {
             }
         );
 
-        fs.unlink(path.join(__dirname, "bidGraphOption2.png"), err => {
+        fs.unlink(path.join(__dirname, `${photoUUID}.png`), err => {
             if (err) console.log(err)
             else {
-                console.log("Deleted file: " + path.join(__dirname, "bidGraphOption2.png"))
+                console.log("Deleted file: " + path.join(__dirname, `${photoUUID}.png`))
             }
         });
     } catch (error) {
