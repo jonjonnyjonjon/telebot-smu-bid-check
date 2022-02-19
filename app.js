@@ -21,7 +21,7 @@ function formatUserInput(userInput) {
 const bidsInText = new Scenes.BaseScene("bidsInText");
 
 bidsInText.enter(ctx => {
-    ctx.replyWithHTML("To check for bids, please send me: term, course code and bidding window.\n\nExample: <b>2021-22 Term 2, IS215, R1BW1</b>\n\nI will reply with a list of instructors for you to choose from!")
+    ctx.replyWithHTML("To check for past bidding results in text format, please send me your request in the following format: term, course code and bidding window.\n\nExample: <b>2021-22 Term 2, IS215, R1BW1</b> (P.S. The comma is important!)\n\nI will reply with a list of instructors for you to choose from!")
 })
 
 bidsInText.action("again", enter("bidsInText"));
@@ -62,17 +62,17 @@ bidsInText.hears(/^\/[0-9]+/, async (ctx) => {
             }
             ctx.replyWithHTML(msgReply,
                 Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
                 ])
             );
         } catch (error) {
             ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
                 Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
-            ]));
-    }
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ]));
+        }
     }
 });
 
@@ -87,7 +87,7 @@ bidsInText.on("text", async (ctx) => {
                 biddingWindow: biddingWindow
             }
         });
-        let msgReply = "Now, choose an instructor: \n\n";
+        let msgReply = "Please choose an instructor by clicking on the number or typing it out (e.g. /1) \n\n";
         if (results.data.length !== 0) {
             ctx.scene.session.instructorArr = [];
             for (let i = 0; i < results.data.length; i++) {
@@ -100,10 +100,10 @@ bidsInText.on("text", async (ctx) => {
         ctx.replyWithHTML(msgReply);
     } catch (error) {
         ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
-        Markup.inlineKeyboard([
-            [ Markup.button.callback("Search again", "again") ],
-            [ Markup.button.callback("Leave", "leave") ]
-        ]));
+            Markup.inlineKeyboard([
+                [Markup.button.callback("Search again", "again")],
+                [Markup.button.callback("Leave", "leave")]
+            ]));
     }
 });
 
@@ -111,11 +111,11 @@ bidsInText.on("text", async (ctx) => {
 const bidsInGraph = new Scenes.BaseScene("bidsInGraph");
 
 bidsInGraph.enter(ctx => {
-    ctx.replyWithHTML("To generate a graph with bids, please either of the following to continue:\nOption 1: View past bids by their term, course code, instructor and section\nOption 2: View all past bids by term and course code",
-    Markup.inlineKeyboard([
-        [ Markup.button.callback("Option 1", "option1") ],
-        [ Markup.button.callback("Option 2", "option2") ]
-    ]));
+    ctx.replyWithHTML("To generate a graph with the past bid results, please choose one of the options to continue:\n\nOption 1: View past bid results by their term, course code, instructor and section\nOption 2: View all past bid results by term and course code (shows all sections)",
+        Markup.inlineKeyboard([
+            [Markup.button.callback("Option 1", "option1")],
+            [Markup.button.callback("Option 2", "option2")]
+        ]));
 });
 bidsInGraph.action("option1", enter("bidsInGraphOption1"));
 bidsInGraph.action("option2", enter("bidsInGraphOption2"));
@@ -127,7 +127,7 @@ bidsInGraph.command("leave", ctx => {
 // User choose bidsInGraph - Option 1
 const bidsInGraphOption1 = new Scenes.BaseScene("bidsInGraphOption1");
 bidsInGraphOption1.enter(ctx => {
-    ctx.replyWithHTML("Please send me the term, course code, instructor and section to generate the graph.\nExample: 2021-22 Term 2, IS215, Christopher Michael Poskitt, G7");
+    ctx.replyWithHTML("Please send me your request in the following format: term, course code, instructor and section\n\nExample: <b>2021-22 Term 2, IS215, Christopher Michael Poskitt, G7</b> (P.S. The comma is important!)");
 })
 bidsInGraphOption1.action("again", enter("bidsInGraphOption1"));
 bidsInGraphOption1.action("leave", ctx => {
@@ -154,10 +154,10 @@ bidsInGraphOption1.on("text", async (ctx) => {
 
         if (results.data.length === 0) {
             ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart."),
-            Markup.inlineKeyboard([
-                [ Markup.button.callback("Search again", "again")] ,
-                [ Markup.button.callback("Leave", "leave")] 
-            ]);
+                Markup.inlineKeyboard([
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ]);
             return;
         }
 
@@ -167,7 +167,7 @@ bidsInGraphOption1.on("text", async (ctx) => {
         for (let result of results.data) {
             biddingWindows.push(result.biddingWindow);
             minBids.push(result.minBid);
-            medianBids.push(results.medianBid);
+            medianBids.push(result.medianBid);
         }
         biddingWindows = biddingWindows.reverse();
         minBids = minBids.reverse();
@@ -175,72 +175,72 @@ bidsInGraphOption1.on("text", async (ctx) => {
 
         const myChart = new QuickChart();
         myChart
-        .setConfig({
-            type: "bar",
-            data: {
-                labels: biddingWindows,
-                datasets: [
-                    {
-                        type: "bar",
-                        label: "Min bids",
-                        backgroundColor: "rgba(255, 99, 132, 0.5)",
-                        borderColor: "rgb(255, 99, 132)",
-                        data: minBids
-                    },
-                    {
-                        type: "line",
-                        label: "Median bids",
-                        backgroundColor: "rgba(75, 192, 192, 0.5)",
-                        borderColor: "rgb(75, 192, 192)",
-                        fill: false,
-                        data: minBids
-                    }
-                ]
-            },
-            options: {
-                title: {
-                    display: true,
-                    text: userInput
-                },
-                scales: {
-                    xAxes: [
+            .setConfig({
+                type: "bar",
+                data: {
+                    labels: biddingWindows,
+                    datasets: [
                         {
-                            ticks: {
-                                fontSize: 10
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: "Bidding round",
-                            }
-                        }
-                    ],
-                    yAxes: [
+                            type: "bar",
+                            label: "Min bids",
+                            backgroundColor: "rgba(255, 99, 132, 0.5)",
+                            borderColor: "rgb(255, 99, 132)",
+                            data: minBids
+                        },
                         {
-                            scaleLabel: {
-                                display: true,
-                                labelString: "e$",
-                            }
+                            type: "line",
+                            label: "Median bids",
+                            backgroundColor: "rgba(75, 192, 192, 0.5)",
+                            borderColor: "rgb(75, 192, 192)",
+                            fill: false,
+                            data: medianBids
                         }
                     ]
                 },
-                plugins: {
-                    datalabels: {
+                options: {
+                    title: {
                         display: true,
-                        align: 'bottom',
-                        backgroundColor: function(context) {
-                            return context.dataset.backgroundColor;
-                        },
-                        color: 'white',
-                        borderRadius: 3,
-                        font: {
-                            size: 18,
-                        }
+                        text: userInput
                     },
+                    scales: {
+                        xAxes: [
+                            {
+                                ticks: {
+                                    fontSize: 10
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: "Bidding round",
+                                }
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: "e$",
+                                }
+                            }
+                        ]
+                    },
+                    plugins: {
+                        datalabels: {
+                            display: true,
+                            align: 'bottom',
+                            backgroundColor: function (context) {
+                                return context.dataset.backgroundColor;
+                            },
+                            color: 'white',
+                            borderRadius: 3,
+                            font: {
+                                size: 18,
+                            }
+                        },
+                    }
                 }
-            }
-        })
-        .setHeight(600)
-        .setWidth(1000);
+            })
+            .setHeight(600)
+            .setWidth(1000);
 
         const photoUUID = uuid4();
         await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
@@ -248,11 +248,11 @@ bidsInGraphOption1.on("text", async (ctx) => {
         ctx.replyWithPhoto(
             { source: path.join(__dirname, `${photoUUID}.png`) },
             { 
-                caption: "This is your graph.",
+                caption: "Here is your graph!",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
                 ])
             }
         );
@@ -269,9 +269,9 @@ bidsInGraphOption1.on("text", async (ctx) => {
         } else {
             ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
                 Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
-            ]));
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ]));
         }
     }
 })
@@ -290,7 +290,7 @@ bidsInGraphOption2.command("leave", ctx => {
 });
 
 bidsInGraphOption2.enter(ctx => {
-    ctx.replyWithHTML("Please send me the term, course code, type of bid to generate the graph.\nExample: 2021-22 Term 2, IS215, median/min");
+    ctx.replyWithHTML("Please send me your request in the following format: term, course code, bid type ('median' or 'min')\n\nExample: <b>2021-22 Term 2, IS215, median</b> (P.S. The comma is important!)");
 });
 bidsInGraphOption2.on("text", async (ctx) => {
     try {
@@ -305,10 +305,10 @@ bidsInGraphOption2.on("text", async (ctx) => {
 
         if (results.data.length === 0) {
             ctx.reply("There is either no such course or no bids history for this course. Please try again or leave the bot to restart."),
-            Markup.inlineKeyboard([
-                [ Markup.button.callback("Search again", "again")] ,
-                [ Markup.button.callback("Leave", "leave")] 
-            ]);
+                Markup.inlineKeyboard([
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ]);
             return;
         }
 
@@ -349,7 +349,7 @@ bidsInGraphOption2.on("text", async (ctx) => {
                     type: "line",
                     label: `${section}(${instructor})`,
                     fill: false,
-                    borderColor: "#" + Math.floor(Math.random()*16777215).toString(16),
+                    borderColor: "#" + Math.floor(Math.random() * 16777215).toString(16),
                     data: metric == "median" ? sectionInfo.medianBids.reverse() : sectionInfo.minBids.reverse()
                 };
                 dataConfigs.push(dataset);
@@ -358,42 +358,42 @@ bidsInGraphOption2.on("text", async (ctx) => {
 
         const myChart = new QuickChart();
         myChart
-        .setConfig({
-            type: "line",
-            data: {
-                labels: biddingWindows,
-                datasets: dataConfigs
-            },
-            options: {
-                title: {
-                    display: true,
-                    text: userInput
+            .setConfig({
+                type: "line",
+                data: {
+                    labels: biddingWindows,
+                    datasets: dataConfigs
                 },
-                scales: {
-                    xAxes: [
-                        {
-                            ticks: {
-                                fontSize: 10
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: "Bidding round",
+                options: {
+                    title: {
+                        display: true,
+                        text: userInput
+                    },
+                    scales: {
+                        xAxes: [
+                            {
+                                ticks: {
+                                    fontSize: 10
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: "Bidding round",
+                                }
                             }
-                        }
-                    ],
-                    yAxes: [
-                        {
-                            scaleLabel: {
-                                display: true,
-                                labelString: "e$",
+                        ],
+                        yAxes: [
+                            {
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: "e$",
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    }
                 }
-            }
-        })
-        .setHeight(600)
-        .setWidth(1000);
+            })
+            .setHeight(600)
+            .setWidth(1000);
 
         const photoUUID = uuid4();
         await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
@@ -401,11 +401,11 @@ bidsInGraphOption2.on("text", async (ctx) => {
         ctx.replyWithPhoto(
             { source: path.join(__dirname, `${photoUUID}.png`) },
             { 
-                caption: "This is your graph.",
+                caption: "Here is your graph!",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
                 ])
             }
         );
@@ -422,24 +422,90 @@ bidsInGraphOption2.on("text", async (ctx) => {
         } else {
             ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
                 Markup.inlineKeyboard([
-                    [ Markup.button.callback("Search again", "again") ],
-                    [ Markup.button.callback("Leave", "leave") ]
-            ]));
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ]));
         }
+    }
+});
+
+// User chooses Search for Course Code
+const searchCourseCode = new Scenes.BaseScene("searchCourseCode");
+
+searchCourseCode.enter(ctx => {
+    ctx.replyWithHTML("To look for a course code, please send me the name of the course that you are looking for.\n\nFor example, '<b>intro to programming</b>'.")
+})
+
+searchCourseCode.action("again", enter("searchCourseCode"));
+searchCourseCode.action("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
+searchCourseCode.command("leave", ctx => {
+    ctx.reply("Bye bye! Thanks for using our bot.");
+    ctx.scene.leave();
+});
+
+searchCourseCode.on("text", async (ctx) => {
+    let userInput = ctx.update.message.text;
+    try {
+        const results = await axios.get("http://localhost:5000/api/courseCode", {
+            params: {
+                description: userInput
+            }
+        });
+        let msgReply = ["Here are the course codes that correspond to the course name that you have provided!\n\n"];
+        if (results.data.length !== 0) {
+            for (let i = 0; i < results.data.length; i++) {
+                let result = results.data[i];
+                if ((msgReply[msgReply.length - 1].length + `<b>•</b> ${result.courseCode}: ${result.description}\n`.length) > 4096) {
+                    msgReply.push("");
+                }
+                msgReply[msgReply.length - 1] += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
+            }
+        } else {
+            msgReply = "No results found, please try again!";
+        }
+
+        // replies with every element in the array except for the last one
+        // if there is only one element in the array, there will be no
+        // output from this for loop
+        for (let i = 0; i < msgReply.length - 1; i++) {
+            ctx.replyWithHTML(msgReply[i]);
+        }
+
+        // replies the user with the last element in the array along
+        // with the button options
+        setTimeout(() => {
+            ctx.replyWithHTML(msgReply[msgReply.length - 1],
+                Markup.inlineKeyboard([
+                    [Markup.button.callback("Search again", "again")],
+                    [Markup.button.callback("Leave", "leave")]
+                ])
+            );
+        }, 500);
+
+    } catch (error) {
+        ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
+            Markup.inlineKeyboard([
+                [Markup.button.callback("Search again", "again")],
+                [Markup.button.callback("Leave", "leave")]
+            ]));
     }
 });
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 
 // Staging the scenes
-const stage = new Scenes.Stage([bidsInText, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2])
+const stage = new Scenes.Stage([bidsInText, bidsInGraph, bidsInGraphOption1, bidsInGraphOption2, searchCourseCode])
 bot.use(session())
 bot.use(stage.middleware())
 
 bot.start(ctx => {
-    ctx.replyWithHTML("Welcome to SMU Bid Checker bot. What do you want to do today?", Markup.inlineKeyboard([
-        [ Markup.button.callback("View bids in Text format", "bidsInText") ],
-        [ Markup.button.callback("View Bids in Graph format", "bidsInGraph") ]
+    ctx.replyWithHTML("Welcome to SMU BOSS Results bot!\n\nYou can look for the past bidding results here instead of having to log into BOSS!\n\nWhat do you want to search for?", Markup.inlineKeyboard([
+        [Markup.button.callback("View Past Bid Results in Text Format", "bidsInText")],
+        [Markup.button.callback("View Past Bid Results in Graph Format", "bidsInGraph")],
+        [Markup.button.callback("Search for a Course Code", "searchCourseCode")]
     ]))
 });
 bot.command("leave", ctx => {
@@ -448,6 +514,7 @@ bot.command("leave", ctx => {
 })
 bot.action("bidsInText", ctx => ctx.scene.enter("bidsInText"));
 bot.action("bidsInGraph", ctx => ctx.scene.enter("bidsInGraph"));
+bot.action("searchCourseCode", ctx => ctx.scene.enter("searchCourseCode"));
 
 bot.launch();
 
