@@ -451,38 +451,37 @@ searchCourseCode.on("text", async (ctx) => {
                 description: userInput
             }
         });
-        let msgReply = "Here are the course codes that correspond to the course name that you have provided!\n\n";
-        let extendedMsgReply = "";
+        let msgReply = ["Here are the course codes that correspond to the course name that you have provided!\n\n"];
         if (results.data.length !== 0) {
             for (let i = 0; i < results.data.length; i++) {
                 let result = results.data[i];
-                if ((msgReply.length + `<b>•</b> ${result.courseCode}: ${result.description}\n`.length) > 4096) {
-                    extendedMsgReply += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
-                } else {
-                    msgReply += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
+                if ((msgReply[msgReply.length - 1].length + `<b>•</b> ${result.courseCode}: ${result.description}\n`.length) > 4096) {
+                    msgReply.push("");
                 }
+                msgReply[msgReply.length - 1] += `<b>•</b> ${result.courseCode}: ${result.description}\n`;
             }
         } else {
             msgReply = "No results found, please try again!";
         }
-        if (extendedMsgReply.length > 0) {
-            ctx.replyWithHTML(msgReply);
-            setTimeout(() => {
-                ctx.replyWithHTML(extendedMsgReply,
-                    Markup.inlineKeyboard([
-                        [Markup.button.callback("Search again", "again")],
-                        [Markup.button.callback("Leave", "leave")]
-                    ])
-                );
-            }, 500);
-        } else {
-            ctx.replyWithHTML(msgReply,
+
+        // replies with every element in the array except for the last one
+        // if there is only one element in the array, there will be no
+        // output from this for loop
+        for (let i = 0; i < msgReply.length - 1; i++) {
+            ctx.replyWithHTML(msgReply[i]);
+        }
+
+        // replies the user with the last element in the array along
+        // with the button options
+        setTimeout(() => {
+            ctx.replyWithHTML(msgReply[msgReply.length - 1],
                 Markup.inlineKeyboard([
                     [Markup.button.callback("Search again", "again")],
                     [Markup.button.callback("Leave", "leave")]
                 ])
             );
-        }
+        }, 500);
+
     } catch (error) {
         ctx.reply(`An error has occured. Error message: ${error}. Please contact our admin with this issue, or you may proceed to search again or leave the bot.`,
             Markup.inlineKeyboard([
