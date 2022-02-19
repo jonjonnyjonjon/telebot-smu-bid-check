@@ -245,9 +245,9 @@ bidsInGraphOption1.on("text", async (ctx) => {
         const photoUUID = uuid4();
         await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
 
-        ctx.replyWithPhoto(
+        await ctx.replyWithPhoto(
             { source: path.join(__dirname, `${photoUUID}.png`) },
-            { 
+            {
                 caption: "Here is your graph!",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
@@ -264,6 +264,7 @@ bidsInGraphOption1.on("text", async (ctx) => {
             }
         });
     } catch (error) {
+        console.log(error);
         if (error instanceof TypeError) {
             ctx.reply("Please check that your query follows the format in the example.");
         } else {
@@ -398,9 +399,9 @@ bidsInGraphOption2.on("text", async (ctx) => {
         const photoUUID = uuid4();
         await myChart.toFile(path.join(__dirname, `${photoUUID}.png`));
 
-        ctx.replyWithPhoto(
+        await ctx.replyWithPhoto(
             { source: path.join(__dirname, `${photoUUID}.png`) },
-            { 
+            {
                 caption: "Here is your graph!",
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([
